@@ -32,6 +32,30 @@ source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+## Testing PawPal+
+
+```bash
+python3 -m pytest tests/ -v
+```
+
+The test suite has **19 tests** across `tests/test_pawpal.py`, grouped into:
+
+| Group | What it covers |
+|---|---|
+| **Task completion** | `mark_complete()` flips status; idempotent on double-call |
+| **Pet task management** | Adding tasks increases count correctly |
+| **Scheduler — happy path** | High-priority tasks scheduled first; budget enforced; completed tasks excluded |
+| **Sorting** | `sort_by_time()` orders by HH:MM; tasks without a start time sort last |
+| **Filtering** | `filter_tasks()` by pet name and by completion status |
+| **Conflict detection** | Overlapping windows flagged; exact-same start time flagged; adjacent (non-overlapping) tasks pass |
+| **Recurring tasks** | `next_occurrence()` returns correct due date; non-recurring returns `None`; `reset_recurring_tasks()` replaces completed copies |
+| **Edge cases** | Pet with no tasks produces empty plan; zero-minute budget skips everything |
+
+**Confidence level: ★★★★☆**
+Core scheduling behaviors are well-covered. Edge cases not yet tested include: tasks whose duration exactly equals the remaining budget, weekly recurrence across a month boundary, and owners with no pets registered.
+
+---
+
 ## Smarter Scheduling
 
 Beyond the basic priority-first plan, PawPal+ includes four algorithmic enhancements:

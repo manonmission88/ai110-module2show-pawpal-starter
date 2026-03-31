@@ -239,3 +239,43 @@ def test_reset_recurring_tasks_replaces_completed(sample_pet: Pet) -> None:
     assert count == 1
     assert task not in sample_pet.tasks          # old completed task removed
     assert any(t.title == "Daily walk" and not t.completed for t in sample_pet.tasks)
+
+
+# ---------------------------------------------------------------------------
+# Edge cases
+# ---------------------------------------------------------------------------
+
+def test_generate_plan_pet_with_no_tasks() -> None:
+    """A pet with no tasks must produce an empty plan without raising."""
+    empty_pet = Pet(name="Ghost", species="cat", age_years=1)
+    owner = Owner(name="Sam", available_minutes=60)
+    owner.add_pet(empty_pet)
+
+    plan = Scheduler(owner).generate_plan()
+    assert plan.scheduled_tasks == []
+    assert plan.skipped_tasks == []
+    assert plan.total_duration_minutes == 0
+
+
+def test_generate_plan_zero_budget_skips_all(sample_pet: Pet) -> None:
+    """When available_minutes=0, every task must land in skipped_tasks."""
+    sample_pet.add_task(Task("Walk",      "walk",    10, "high"))
+    sample_pet.add_task(Task("Breakfast", "feeding",  5, "high"))
+
+    owner = Owner(name="Alex", available_minutes=0)
+    owner.add_pet(sample_pet)
+
+    plan = Scheduler(owner).generate_plan()
+    assert plan.scheduled_tasks == []
+    assert len(plan.skipped_tasks) == 2
+
+
+def test_detect_conflicts_exact_same_start_time(owner_with_pet: Owner) -> None:
+    """Two tasks with the identical start time must be flagged as a conflict."""
+    t1 = Task("Walk",  "walk",    20, "high")
+    t2 = Task("Meds",  "medication", 10, "high")
+    t1.start_time = "08:00"
+    t2.start_time = "08:00"   # exact same time — definite overlap
+
+    warnings = Scheduler(owner_with_pet).detect_conflicts([t1, t2])
+    assert len(warnings) == 1
